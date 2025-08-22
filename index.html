@@ -3,11 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <title>Wedding AR</title>
-
-    <!-- A-Frame + MindAR -->
     <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-
     <style>
       body { margin: 0; overflow: hidden; }
       #config-panel {
@@ -23,7 +20,6 @@
       }
     </style>
   </head>
-
   <body>
     <div id="config-panel">
       <label><input type="checkbox" id="overrideToggle" /> Override Mode</label>
@@ -31,7 +27,7 @@
     </div>
 
     <a-scene
-      mindar-image="imageTargetSrc: https://SivaVideos.github.io/AR_Project/targets.mind;"
+      mindar-image="imageTargetSrc: ./targets.mind;"
       color-space="sRGB"
       embedded
       vr-mode-ui="enabled: false"
@@ -50,23 +46,17 @@
       const overrideToggle = document.querySelector("#overrideToggle");
 
       // Load config.json dynamically
-      fetch("https://SivaVideos.github.io/AR_Project/config.json")
-        .then(res => {
-          if (!res.ok) throw new Error("Config fetch failed");
-          return res.json();
-        })
+      fetch("./config.json")
+        .then(res => res.json())
         .then(config => {
           config.targets.forEach((target, index) => {
             // Add video asset
             const videoEl = document.createElement("video");
             videoEl.setAttribute("id", "video-" + index);
-            videoEl.setAttribute("src", "https://SivaVideos.github.io/AR_Project/" + target.video);
+            videoEl.setAttribute("src", target.video);
             videoEl.setAttribute("preload", "auto");
             videoEl.setAttribute("playsinline", "");
             videoEl.setAttribute("webkit-playsinline", "");
-            videoEl.setAttribute("muted", "true");
-            videoEl.setAttribute("autoplay", "true");
-            videoEl.setAttribute("loop", "true");
             assetsEl.appendChild(videoEl);
 
             // Create target entity
@@ -95,7 +85,7 @@
             // Events
             entity.addEventListener("targetFound", () => {
               if (!overrideMode && activeTargetIndex !== null && activeTargetIndex !== index) return;
-              videoEl.play().catch(e => console.error("Video play error:", e));
+              videoEl.play();
               badge.setAttribute("visible", "true");
               activeTargetIndex = index;
             });
@@ -106,9 +96,6 @@
               if (activeTargetIndex === index) activeTargetIndex = null;
             });
           });
-        })
-        .catch(err => {
-          console.error("Config fetch error:", err.message);
         });
 
       // Override toggle
