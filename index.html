@@ -62,16 +62,15 @@
         })
         .then(config => {
           config.targets.forEach((target, index) => {
-            // Add video asset
+            // Add video asset (NO autoplay/loop here)
             const videoEl = document.createElement("video");
             videoEl.setAttribute("id", "video-" + index);
             videoEl.setAttribute("src", "https://SivaVideos.github.io/AR_Project/" + target.video);
             videoEl.setAttribute("preload", "auto");
             videoEl.setAttribute("playsinline", "");
             videoEl.setAttribute("webkit-playsinline", "");
-            videoEl.setAttribute("muted", "true");
-            videoEl.setAttribute("autoplay", "true");
-            videoEl.setAttribute("loop", "true");
+            videoEl.setAttribute("crossorigin", "anonymous");
+            videoEl.muted = true; // Start muted, can unmute later
             assetsEl.appendChild(videoEl);
 
             // Create target entity
@@ -101,16 +100,15 @@
             entity.addEventListener("targetFound", () => {
               if (!overrideMode && activeTargetIndex !== null && activeTargetIndex !== index) return;
 
-              // 🔴 Stop all other videos first
+              // Stop all other videos
               document.querySelectorAll("video").forEach(v => {
                 v.pause();
-                v.currentTime = 0;
               });
               document.querySelectorAll("[text]").forEach(b => b.setAttribute("visible", "false"));
 
-              // ▶ Play only the scanned one
+              // Play only the scanned one
               videoEl.currentTime = 0;
-              if (canUnmute) videoEl.muted = false; 
+              if (canUnmute) videoEl.muted = false;
               videoEl.play().catch(e => console.error("Video play error:", e));
               badge.setAttribute("visible", "true");
               activeTargetIndex = index;
@@ -135,11 +133,7 @@
       // Stop All Videos button
       stopAllBtn.addEventListener("click", () => {
         document.querySelectorAll("video").forEach(v => v.pause());
-        document.querySelectorAll("[text]").forEach(badge => {
-          if (badge.getAttribute("text").value.includes("🎥")) {
-            badge.setAttribute("visible", "false");
-          }
-        });
+        document.querySelectorAll("[text]").forEach(badge => badge.setAttribute("visible", "false"));
         activeTargetIndex = null;
       });
 
