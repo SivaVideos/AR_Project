@@ -28,6 +28,7 @@
 
   <body>
     <div id="config-panel">
+      <button id="startBtn">Start AR</button>
       <label><input type="checkbox" id="overrideToggle" /> Override Mode</label>
       <button id="stopAllBtn">Stop All Videos</button>
       <button id="unmuteBtn">Unmute Videos</button>
@@ -47,14 +48,18 @@
       let activeTargetIndex = null;
       let overrideMode = false;
       let canUnmute = false;
+      let videosLoaded = false;
 
       const sceneEl = document.querySelector("a-scene");
       const assetsEl = document.querySelector("#assets");
       const stopAllBtn = document.querySelector("#stopAllBtn");
       const overrideToggle = document.querySelector("#overrideToggle");
       const unmuteBtn = document.querySelector("#unmuteBtn");
+      const startBtn = document.querySelector("#startBtn");
 
-      // Load config.json dynamically
+      let videoEls = [];
+
+      // Load config.json
       fetch("https://SivaVideos.github.io/AR_Project/config.json")
         .then(res => {
           if (!res.ok) throw new Error("Config fetch failed");
@@ -62,16 +67,17 @@
         })
         .then(config => {
           config.targets.forEach((target, index) => {
-            // Add video asset (NO autoplay/loop here)
+            // Add video asset
             const videoEl = document.createElement("video");
             videoEl.setAttribute("id", "video-" + index);
             videoEl.setAttribute("src", "https://SivaVideos.github.io/AR_Project/" + target.video);
             videoEl.setAttribute("preload", "auto");
             videoEl.setAttribute("playsinline", "");
             videoEl.setAttribute("webkit-playsinline", "");
-            videoEl.setAttribute("crossorigin", "anonymous");
-            videoEl.muted = true; // Start muted, can unmute later
+            videoEl.setAttribute("muted", "true"); // initially muted
+            videoEl.setAttribute("loop", "true");
             assetsEl.appendChild(videoEl);
+            videoEls.push(videoEl);
 
             // Create target entity
             const entity = document.createElement("a-entity");
@@ -96,20 +102,24 @@
 
             sceneEl.appendChild(entity);
 
-            // Events
+            // AR events
             entity.addEventListener("targetFound", () => {
               if (!overrideMode && activeTargetIndex !== null && activeTargetIndex !== index) return;
 
               // Stop all other videos
-              document.querySelectorAll("video").forEach(v => {
-                v.pause();
+              videoEls.forEach(v => {
+                if (v !== videoEl) { 
+                  v.pause(); 
+                  v.currentTime = 0;
+                }
               });
               document.querySelectorAll("[text]").forEach(b => b.setAttribute("visible", "false"));
 
-              // Play only the scanned one
+              // Play only the scanned video
               videoEl.currentTime = 0;
               if (canUnmute) videoEl.muted = false;
               videoEl.play().catch(e => console.error("Video play error:", e));
+
               badge.setAttribute("visible", "true");
               activeTargetIndex = index;
             });
@@ -120,27 +130,32 @@
               if (activeTargetIndex === index) activeTargetIndex = null;
             });
           });
+          videosLoaded = true;
         })
-        .catch(err => {
-          console.error("Config fetch error:", err.message);
-        });
+        .catch(err => console.error("Config fetch error:", err.message));
 
-      // Override toggle
-      overrideToggle.addEventListener("change", (e) => {
-        overrideMode = e.target.checked;
+      // Start AR button (must be clicked to enable video playback)
+      startBtn.addEventListener("click", () => {
+        if (!videosLoaded) return alert("Videos not yet loaded!");
+        videoEls.forEach(v => v.play().then(() => v.pause())); // unlock videos via user gesture
+        startBtn.style.display = "none"; // hide start button
+        alert("AR initialized. Scan a target now.");
       });
 
-      // Stop All Videos button
+      // Override toggle
+      overrideToggle.addEventListener("change", e => { overrideMode = e.target.checked; });
+
+      // Stop all videos
       stopAllBtn.addEventListener("click", () => {
-        document.querySelectorAll("video").forEach(v => v.pause());
-        document.querySelectorAll("[text]").forEach(badge => badge.setAttribute("visible", "false"));
+        videoEls.forEach(v => v.pause());
+        document.querySelectorAll("[text]").forEach(b => b.setAttribute("visible", "false"));
         activeTargetIndex = null;
       });
 
       // Unmute button
       unmuteBtn.addEventListener("click", () => {
         canUnmute = true;
-        document.querySelectorAll("video").forEach(v => v.muted = false);
+        videoEls.forEach(v => v.muted = false);
         alert("Videos unmuted ✅");
       });
     </script>
