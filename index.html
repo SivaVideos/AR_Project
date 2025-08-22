@@ -40,7 +40,7 @@
       <a-assets id="assets"></a-assets>
     </a-scene>
 
-   <script>
+<script>
   let activeTargetIndex = null;
   let overrideMode = false;
 
@@ -57,7 +57,7 @@
     })
     .then(config => {
       config.targets.forEach((target, index) => {
-        // Add video asset
+        // Add video asset (NO autoplay/loop)
         const videoEl = document.createElement("video");
         videoEl.setAttribute("id", "video-" + index);
         videoEl.setAttribute("src", "https://SivaVideos.github.io/AR_Project/" + target.video);
@@ -65,17 +65,15 @@
         videoEl.setAttribute("playsinline", "");
         videoEl.setAttribute("webkit-playsinline", "");
         videoEl.setAttribute("muted", "true");
-        videoEl.setAttribute("autoplay", "true");
-        videoEl.setAttribute("loop", "true");
         assetsEl.appendChild(videoEl);
 
         // Create target entity
         const entity = document.createElement("a-entity");
         entity.setAttribute("mindar-image-target", "targetIndex: " + index);
 
-        // ✅ Use a-plane with video texture instead of a-video
-        const plane = document.createElement("a-plane");
-        plane.setAttribute("material", "shader: flat; src: #video-" + index);
+        // Video plane
+        const plane = document.createElement("a-video");
+        plane.setAttribute("src", "#video-" + index);
         plane.setAttribute("width", target.width || 1);
         plane.setAttribute("height", target.height || 0.6);
         plane.setAttribute("position", "0 0 0");
@@ -95,6 +93,7 @@
         // Events
         entity.addEventListener("targetFound", () => {
           if (!overrideMode && activeTargetIndex !== null && activeTargetIndex !== index) return;
+          videoEl.currentTime = 0; // restart video each scan
           videoEl.play().catch(e => console.error("Video play error:", e));
           badge.setAttribute("visible", "true");
           activeTargetIndex = index;
@@ -127,6 +126,8 @@
     activeTargetIndex = null;
   });
 </script>
+
   </body>
 </html>
+
 
