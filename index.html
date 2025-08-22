@@ -16,11 +16,13 @@
         padding: 10px; border-radius: 10px;
         font-family: sans-serif; z-index: 999;
       }
-      .badge {
-        background: green; color: white;
-        padding: 3px 6px; border-radius: 6px;
-        font-size: 12px; text-align: center;
+      button {
+        margin-top: 5px; display: block;
+        background: #2196f3; color: white;
+        border: none; border-radius: 5px;
+        padding: 5px 10px; cursor: pointer;
       }
+      button:hover { background: #0b7dda; }
     </style>
   </head>
 
@@ -28,6 +30,7 @@
     <div id="config-panel">
       <label><input type="checkbox" id="overrideToggle" /> Override Mode</label>
       <button id="stopAllBtn">Stop All Videos</button>
+      <button id="unmuteBtn">Unmute Videos</button>
     </div>
 
     <a-scene
@@ -40,94 +43,112 @@
       <a-assets id="assets"></a-assets>
     </a-scene>
 
-<script>
-  let activeTargetIndex = null;
-  let overrideMode = false;
+    <script>
+      let activeTargetIndex = null;
+      let overrideMode = false;
+      let canUnmute = false;
 
-  const sceneEl = document.querySelector("a-scene");
-  const assetsEl = document.querySelector("#assets");
-  const stopAllBtn = document.querySelector("#stopAllBtn");
-  const overrideToggle = document.querySelector("#overrideToggle");
+      const sceneEl = document.querySelector("a-scene");
+      const assetsEl = document.querySelector("#assets");
+      const stopAllBtn = document.querySelector("#stopAllBtn");
+      const overrideToggle = document.querySelector("#overrideToggle");
+      const unmuteBtn = document.querySelector("#unmuteBtn");
 
-  // Load config.json dynamically
-  fetch("https://SivaVideos.github.io/AR_Project/config.json")
-    .then(res => {
-      if (!res.ok) throw new Error("Config fetch failed");
-      return res.json();
-    })
-    .then(config => {
-      config.targets.forEach((target, index) => {
-        // Add video asset (NO autoplay/loop)
-        const videoEl = document.createElement("video");
-        videoEl.setAttribute("id", "video-" + index);
-        videoEl.setAttribute("src", "https://SivaVideos.github.io/AR_Project/" + target.video);
-        videoEl.setAttribute("preload", "auto");
-        videoEl.setAttribute("playsinline", "");
-        videoEl.setAttribute("webkit-playsinline", "");
-        videoEl.setAttribute("muted", "true");
-        assetsEl.appendChild(videoEl);
+      // Load config.json dynamically
+      fetch("https://SivaVideos.github.io/AR_Project/config.json")
+        .then(res => {
+          if (!res.ok) throw new Error("Config fetch failed");
+          return res.json();
+        })
+        .then(config => {
+          config.targets.forEach((target, index) => {
+            // Add video asset
+            const videoEl = document.createElement("video");
+            videoEl.setAttribute("id", "video-" + index);
+            videoEl.setAttribute("src", "https://SivaVideos.github.io/AR_Project/" + target.video);
+            videoEl.setAttribute("preload", "auto");
+            videoEl.setAttribute("playsinline", "");
+            videoEl.setAttribute("webkit-playsinline", "");
+            videoEl.setAttribute("muted", "true");
+            videoEl.setAttribute("autoplay", "true");
+            videoEl.setAttribute("loop", "true");
+            assetsEl.appendChild(videoEl);
 
-        // Create target entity
-        const entity = document.createElement("a-entity");
-        entity.setAttribute("mindar-image-target", "targetIndex: " + index);
+            // Create target entity
+            const entity = document.createElement("a-entity");
+            entity.setAttribute("mindar-image-target", "targetIndex: " + index);
 
-        // Video plane
-        const plane = document.createElement("a-video");
-        plane.setAttribute("src", "#video-" + index);
-        plane.setAttribute("width", target.width || 1);
-        plane.setAttribute("height", target.height || 0.6);
-        plane.setAttribute("position", "0 0 0");
-        entity.appendChild(plane);
+            // Video plane
+            const plane = document.createElement("a-video");
+            plane.setAttribute("src", "#video-" + index);
+            plane.setAttribute("width", target.width || 1);
+            plane.setAttribute("height", target.height || 0.6);
+            plane.setAttribute("position", "0 0 0");
+            entity.appendChild(plane);
 
-        // Badge
-        const badge = document.createElement("a-entity");
-        badge.setAttribute("visible", "false");
-        badge.setAttribute("geometry", "primitive: plane; height: 0.2; width: 0.6");
-        badge.setAttribute("material", "color: green; opacity: 0.8");
-        badge.setAttribute("text", "value: 🎥 playing; align: center; color: white; width: 2");
-        badge.setAttribute("position", "0 0.5 0");
-        entity.appendChild(badge);
+            // Badge
+            const badge = document.createElement("a-entity");
+            badge.setAttribute("visible", "false");
+            badge.setAttribute("geometry", "primitive: plane; height: 0.2; width: 0.6");
+            badge.setAttribute("material", "color: green; opacity: 0.8");
+            badge.setAttribute("text", "value: 🎥 playing; align: center; color: white; width: 2");
+            badge.setAttribute("position", "0 0.5 0");
+            entity.appendChild(badge);
 
-        sceneEl.appendChild(entity);
+            sceneEl.appendChild(entity);
 
-        // Events
-        entity.addEventListener("targetFound", () => {
-          if (!overrideMode && activeTargetIndex !== null && activeTargetIndex !== index) return;
-          videoEl.currentTime = 0; // restart video each scan
-          videoEl.play().catch(e => console.error("Video play error:", e));
-          badge.setAttribute("visible", "true");
-          activeTargetIndex = index;
+            // Events
+            entity.addEventListener("targetFound", () => {
+              if (!overrideMode && activeTargetIndex !== null && activeTargetIndex !== index) return;
+
+              // 🔴 Stop all other videos first
+              document.querySelectorAll("video").forEach(v => {
+                v.pause();
+                v.currentTime = 0;
+              });
+              document.querySelectorAll("[text]").forEach(b => b.setAttribute("visible", "false"));
+
+              // ▶ Play only the scanned one
+              videoEl.currentTime = 0;
+              if (canUnmute) videoEl.muted = false; 
+              videoEl.play().catch(e => console.error("Video play error:", e));
+              badge.setAttribute("visible", "true");
+              activeTargetIndex = index;
+            });
+
+            entity.addEventListener("targetLost", () => {
+              videoEl.pause();
+              badge.setAttribute("visible", "false");
+              if (activeTargetIndex === index) activeTargetIndex = null;
+            });
+          });
+        })
+        .catch(err => {
+          console.error("Config fetch error:", err.message);
         });
 
-        entity.addEventListener("targetLost", () => {
-          videoEl.pause();
-          badge.setAttribute("visible", "false");
-          if (activeTargetIndex === index) activeTargetIndex = null;
-        });
+      // Override toggle
+      overrideToggle.addEventListener("change", (e) => {
+        overrideMode = e.target.checked;
       });
-    })
-    .catch(err => {
-      console.error("Config fetch error:", err.message);
-    });
 
-  // Override toggle
-  overrideToggle.addEventListener("change", (e) => {
-    overrideMode = e.target.checked;
-  });
+      // Stop All Videos button
+      stopAllBtn.addEventListener("click", () => {
+        document.querySelectorAll("video").forEach(v => v.pause());
+        document.querySelectorAll("[text]").forEach(badge => {
+          if (badge.getAttribute("text").value.includes("🎥")) {
+            badge.setAttribute("visible", "false");
+          }
+        });
+        activeTargetIndex = null;
+      });
 
-  // Stop All Videos button
-  stopAllBtn.addEventListener("click", () => {
-    document.querySelectorAll("video").forEach(v => v.pause());
-    document.querySelectorAll("[text]").forEach(badge => {
-      if (badge.getAttribute("text").value.includes("🎥")) {
-        badge.setAttribute("visible", "false");
-      }
-    });
-    activeTargetIndex = null;
-  });
-</script>
-
+      // Unmute button
+      unmuteBtn.addEventListener("click", () => {
+        canUnmute = true;
+        document.querySelectorAll("video").forEach(v => v.muted = false);
+        alert("Videos unmuted ✅");
+      });
+    </script>
   </body>
 </html>
-
-
