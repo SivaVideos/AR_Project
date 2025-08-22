@@ -1,10 +1,11 @@
 {
   "targets": [
     {
-      "photo": "photo1.jpg",
-      "video": "video1.mp4",
+      "photo": "assets/photo1.jpg",
+      "video": "assets/video1.mp4",
       "width": 1,
       "height": 0.6
     }
   ]
 }
+
