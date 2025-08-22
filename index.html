@@ -44,7 +44,7 @@
     </div>
 
     <a-scene
-      mindar-image="imageTargetSrc: https://YOUR-USERNAME.github.io/YOUR-REPO/targets.mind;"
+      mindar-image="imageTargetSrc: https://SivaVideos.github.io/AR_Project/targets.mind;"
       color-space="sRGB"
       embedded
       vr-mode-ui="enabled: false"
@@ -68,7 +68,7 @@
 
       // Load config.json dynamically (absolute path!)
       alert("STEP 3: Starting fetch for config.json");
-      fetch("https://YOUR-USERNAME.github.io/YOUR-REPO/config.json")
+      fetch("https://SivaVideos.github.io/AR_Project/config.json")
         .then(res => {
           alert("STEP 4: Fetch response status = " + res.status);
           if (!res.ok) throw new Error("Config fetch failed");
@@ -83,7 +83,7 @@
             // Add video asset
             const videoEl = document.createElement("video");
             videoEl.setAttribute("id", "video-" + index);
-            videoEl.setAttribute("src", "https://YOUR-USERNAME.github.io/YOUR-REPO/" + target.video);
+            videoEl.setAttribute("src", "https://SivaVideos.github.io/AR_Project/" + target.video);
             videoEl.setAttribute("preload", "auto");
             videoEl.setAttribute("playsinline", "");
             videoEl.setAttribute("webkit-playsinline", "");
@@ -156,3 +156,4 @@
     </script>
   </body>
 </html>
+
