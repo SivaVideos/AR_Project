@@ -3,11 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <title>Wedding AR</title>
-
-    <!-- A-Frame + MindAR -->
     <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-
     <style>
       body { margin: 0; overflow: hidden; }
       #config-panel {
@@ -22,112 +19,30 @@
         font-size: 12px; text-align: center;
       }
     </style>
-
-    <!-- Console → Alerts (mobile debugging) -->
     <script>
       (function() {
-        const origLog = console.log, origError = console.error, origWarn = console.warn;
-        console.log = (...args) => { origLog(...args); alert("[LOG] " + args.join(" ")); };
-        console.error = (...args) => { origError(...args); alert("[ERROR] " + args.join(" ")); };
-        console.warn = (...args) => { origWarn(...args); alert("[WARN] " + args.join(" ")); };
-        window.onerror = (msg, src, line, col, err) => {
-          alert("[UNCAUGHT ERROR] " + msg + " at " + src + ":" + line);
+        const origLog = console.log;
+        const origError = console.error;
+        const origWarn = console.warn;
+        console.log = function(...args) {
+          origLog.apply(console, args);
+          alert("[LOG] " + args.join(" "));
+        };
+        console.error = function(...args) {
+          origError.apply(console, args);
+          alert("[ERROR] " + args.join(" "));
+        };
+        console.warn = function(...args) {
+          origWarn.apply(console, args);
+          alert("[WARN] " + args.join(" "));
+        };
+        window.onerror = function(message, source, lineno, colno, error) {
+          alert("[UNCAUGHT ERROR] " + message + " at " + source + ":" + lineno);
         };
       })();
     </script>
   </head>
-
   <body>
     <div id="config-panel">
       <label><input type="checkbox" id="overrideToggle" /> Override Mode</label>
       <button id="stopAllBtn">Stop All Videos</button>
-    </div>
-
-    <a-scene
-      mindar-image="imageTargetSrc: https://YOUR-USERNAME.github.io/YOUR-REPO/targets.mind;"
-      color-space="sRGB"
-      embedded
-      vr-mode-ui="enabled: false"
-      device-orientation-permission-ui="enabled: false"
-    >
-      <a-assets id="assets"></a-assets>
-    </a-scene>
-
-    <script>
-  let activeTargetIndex = null;
-  let overrideMode = false;
-
-  const sceneEl = document.querySelector("a-scene");
-  const assetsEl = document.querySelector("a-assets");
-
-  // ✅ Load config.json dynamically
-  fetch("./config.json")
-    .then(res => {
-      if (!res.ok) {
-        alert("❌ config.json not found!");
-        throw new Error("config.json missing");
-      }
-      return res.json();
-    })
-    .then(config => {
-      alert("✅ config.json loaded with " + config.targets.length + " targets");
-
-      config.targets.forEach((target, index) => {
-        // 🎬 Add video asset
-        const videoEl = document.createElement("video");
-        videoEl.setAttribute("id", "video-" + index);
-        videoEl.setAttribute("src", target.video);
-        videoEl.setAttribute("muted", "true"); // 🔥 required for autoplay
-        videoEl.setAttribute("autoplay", "false");
-        videoEl.setAttribute("preload", "auto");
-        videoEl.setAttribute("playsinline", "");
-        videoEl.setAttribute("webkit-playsinline", "");
-        assetsEl.appendChild(videoEl);
-
-        // 🎯 Create target entity
-        const entity = document.createElement("a-entity");
-        entity.setAttribute("mindar-image-target", "targetIndex: " + index);
-
-        // 🖼 Video plane
-        const plane = document.createElement("a-video");
-        plane.setAttribute("src", "#video-" + index);
-        plane.setAttribute("width", target.width || 1);
-        plane.setAttribute("height", target.height || 0.6);
-        plane.setAttribute("position", "0 0 0");
-        entity.appendChild(plane);
-
-        // 🎖 Green badge
-        const badge = document.createElement("a-entity");
-        badge.setAttribute("visible", "false");
-        badge.setAttribute("geometry", "primitive: plane; height: 0.2; width: 0.6");
-        badge.setAttribute("material", "color: green; opacity: 0.8");
-        badge.setAttribute("text", "value: 🎥 playing; align: center; color: white; width: 2");
-        badge.setAttribute("position", "0 0.5 0");
-        entity.appendChild(badge);
-
-        sceneEl.appendChild(entity);
-
-        // 📡 Events for AR detection
-        entity.addEventListener("targetFound", () => {
-          alert("✅ Target " + index + " found!");
-          if (!overrideMode && activeTargetIndex !== null && activeTargetIndex !== index) return;
-          videoEl.play().catch(err => alert("⚠️ Video play failed: " + err.message));
-          badge.setAttribute("visible", "true");
-          activeTargetIndex = index;
-        });
-
-        entity.addEventListener("targetLost", () => {
-          alert("ℹ️ Target " + index + " lost");
-          videoEl.pause();
-          badge.setAttribute("visible", "false");
-          if (activeTargetIndex === index) activeTargetIndex = null;
-        });
-      });
-    })
-    .catch(err => {
-      alert("❌ Error loading config.json: " + err.message);
-    });
-</script>
-  </body>
-</html>
-
