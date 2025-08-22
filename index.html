@@ -58,16 +58,81 @@
       let overrideMode = false;
 
       const sceneEl = document.querySelector("a-scene");
-      const assetsEl = document.querySelector("a-assets");
+      const assetsEl = document.querySelector("#assets");
+      const stopAllBtn = document.querySelector("#stopAllBtn");
+      const overrideToggle = document.querySelector("#overrideToggle");
 
-      // ✅ Load config.json dynamically
-      fetch("./config.json")
-        .then(res => {
-          if (!res.ok) {
-            alert("❌ config.json not found!");
-            throw new Error("config.json missing");
-          }
-          return res.json();
-        })
+      // Load config.json dynamically (absolute path!)
+      fetch("https://YOUR-USERNAME.github.io/YOUR-REPO/config.json")
+        .then(res => res.json())
         .then(config => {
-          alert("✅ config.json loaded with " + config.targets.length + " targets")
+          config.targets.forEach((target, index) => {
+            // Add video asset
+            const videoEl = document.createElement("video");
+            videoEl.setAttribute("id", "video-" + index);
+            videoEl.setAttribute("src", "https://YOUR-USERNAME.github.io/YOUR-REPO/" + target.video);
+            videoEl.setAttribute("preload", "auto");
+            videoEl.setAttribute("playsinline", "");
+            videoEl.setAttribute("webkit-playsinline", "");
+            videoEl.setAttribute("muted", "true");
+            videoEl.setAttribute("autoplay", "true");
+            videoEl.setAttribute("loop", "true");
+            assetsEl.appendChild(videoEl);
+
+            // Create target entity
+            const entity = document.createElement("a-entity");
+            entity.setAttribute("mindar-image-target", "targetIndex: " + index);
+
+            // Video plane
+            const plane = document.createElement("a-video");
+            plane.setAttribute("src", "#video-" + index);
+            plane.setAttribute("width", target.width || 1);
+            plane.setAttribute("height", target.height || 0.6);
+            plane.setAttribute("position", "0 0 0");
+            entity.appendChild(plane);
+
+            // Badge
+            const badge = document.createElement("a-entity");
+            badge.setAttribute("visible", "false");
+            badge.setAttribute("geometry", "primitive: plane; height: 0.2; width: 0.6");
+            badge.setAttribute("material", "color: green; opacity: 0.8");
+            badge.setAttribute("text", "value: 🎥 playing; align: center; color: white; width: 2");
+            badge.setAttribute("position", "0 0.5 0");
+            entity.appendChild(badge);
+
+            sceneEl.appendChild(entity);
+
+            // Events
+            entity.addEventListener("targetFound", () => {
+              if (!overrideMode && activeTargetIndex !== null && activeTargetIndex !== index) return;
+              videoEl.play().catch(e => console.error("Video play error:", e));
+              badge.setAttribute("visible", "true");
+              activeTargetIndex = index;
+            });
+
+            entity.addEventListener("targetLost", () => {
+              videoEl.pause();
+              badge.setAttribute("visible", "false");
+              if (activeTargetIndex === index) activeTargetIndex = null;
+            });
+          });
+        });
+
+      // Override toggle
+      overrideToggle.addEventListener("change", (e) => {
+        overrideMode = e.target.checked;
+      });
+
+      // Stop All Videos button
+      stopAllBtn.addEventListener("click", () => {
+        document.querySelectorAll("video").forEach(v => v.pause());
+        document.querySelectorAll("[text]").forEach(badge => {
+          if (badge.getAttribute("text").value.includes("🎥")) {
+            badge.setAttribute("visible", "false");
+          }
+        });
+        activeTargetIndex = null;
+      });
+    </script>
+  </body>
+</html>
