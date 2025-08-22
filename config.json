@@ -1,0 +1,10 @@
+{
+  "targets": [
+    {
+      "photo": "photo1.jpg",
+      "video": "video1.mp4",
+      "width": 1,
+      "height": 0.6
+    }
+  ]
+}
