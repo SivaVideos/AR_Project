@@ -25,7 +25,6 @@
     const origLog = console.log;
     const origError = console.error;
     const origWarn = console.warn;
-
     console.log = function(...args) {
       origLog.apply(console, args);
       alert("[LOG] " + args.join(" "));
@@ -143,4 +142,5 @@
     </script>
   </body>
 </html>
+
 
