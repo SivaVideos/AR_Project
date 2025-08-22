@@ -54,6 +54,8 @@
     </a-scene>
 
     <script>
+      alert("STEP 1: Script started");
+
       let activeTargetIndex = null;
       let overrideMode = false;
 
@@ -62,11 +64,22 @@
       const stopAllBtn = document.querySelector("#stopAllBtn");
       const overrideToggle = document.querySelector("#overrideToggle");
 
+      alert("STEP 2: DOM elements captured");
+
       // Load config.json dynamically (absolute path!)
+      alert("STEP 3: Starting fetch for config.json");
       fetch("https://YOUR-USERNAME.github.io/YOUR-REPO/config.json")
-        .then(res => res.json())
+        .then(res => {
+          alert("STEP 4: Fetch response status = " + res.status);
+          if (!res.ok) throw new Error("Config fetch failed");
+          return res.json();
+        })
         .then(config => {
+          alert("STEP 5: Config loaded, targets = " + config.targets.length);
+
           config.targets.forEach((target, index) => {
+            alert("STEP 6: Adding target " + index);
+
             // Add video asset
             const videoEl = document.createElement("video");
             videoEl.setAttribute("id", "video-" + index);
@@ -104,6 +117,7 @@
 
             // Events
             entity.addEventListener("targetFound", () => {
+              alert("STEP 7: Target " + index + " found");
               if (!overrideMode && activeTargetIndex !== null && activeTargetIndex !== index) return;
               videoEl.play().catch(e => console.error("Video play error:", e));
               badge.setAttribute("visible", "true");
@@ -111,20 +125,26 @@
             });
 
             entity.addEventListener("targetLost", () => {
+              alert("STEP 8: Target " + index + " lost");
               videoEl.pause();
               badge.setAttribute("visible", "false");
               if (activeTargetIndex === index) activeTargetIndex = null;
             });
           });
+        })
+        .catch(err => {
+          alert("STEP X: Config fetch error → " + err.message);
         });
 
       // Override toggle
       overrideToggle.addEventListener("change", (e) => {
+        alert("STEP 9: Override mode toggled = " + e.target.checked);
         overrideMode = e.target.checked;
       });
 
       // Stop All Videos button
       stopAllBtn.addEventListener("click", () => {
+        alert("STEP 10: Stop all videos clicked");
         document.querySelectorAll("video").forEach(v => v.pause());
         document.querySelectorAll("[text]").forEach(badge => {
           if (badge.getAttribute("text").value.includes("🎥")) {
